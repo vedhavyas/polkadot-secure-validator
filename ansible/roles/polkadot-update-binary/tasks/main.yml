@@ -2,24 +2,24 @@
   get_url:
     url: '{{ polkadot_binary_url | quote }}'
     checksum: '{{ polkadot_binary_checksum | quote }}'
-    dest: /usr/local/bin/polkadot-new
+    dest: "/usr/local/bin/{{ project }}-new"
     force: true
     mode: '0700'
-    owner: 'polkadot'
-    group: 'polkadot'
+    owner: '{{ project }}'
+    group: '{{ project }}'
 
 - name: restart polkadot service
   shell: |
     set -o pipefail
-    systemctl stop polkadot.service || true
+    systemctl stop {{ project }}.service || true
 
-    if [ -f /usr/local/bin/polkadot-new ]; then
-      cp /usr/local/bin/polkadot-new /usr/local/bin/polkadot
-      chown polkadot:polkadot /usr/local/bin/polkadot
-      chmod 755 /usr/local/bin/polkadot
+    if [ -f /usr/local/bin/{{ project }}-new ]; then
+      cp /usr/local/bin/{{ project }}-new /usr/local/bin/{{ project }}
+      chown {{ project }}:{{ project }} /usr/local/bin/{{ project }}
+      chmod 755 /usr/local/bin/{{ project }}
     fi
     systemctl daemon-reload
-    systemctl enable --now polkadot.service
+    systemctl enable --now {{ project }}.service
   args:
     executable: /bin/bash
   changed_when: False

@@ -1,32 +1,33 @@
 [Unit]
-Description=Polkadot Node
+Description={{ project }} Node
 
 [Service]
-User=polkadot
-Group=polkadot
-ExecStart=/usr/local/bin/polkadot \
-  --name {{ project|default('project') }}-sv-validator-{{ groups['validator'].index(inventory_hostname) }} \
+User={{ project }}
+Group={{ project }}
+ExecStart=/usr/local/bin/{{ project }} \
+  --name {{ hostvars[inventory_hostname].validator_name }} \
   --validator \
   --public-addr=/ip4/{{ hostvars[inventory_hostname].public_ip.json.ip }}/tcp/{{ proxy_port }} \
   --listen-addr=/ip4/127.0.0.1/tcp/{{ p2p_port }} \
   --rpc-methods=Unsafe \
-  {% if hostvars[inventory_hostname].polkadot_additional_common_flags is defined and hostvars[inventory_hostname].polkadot_additional_common_flags|length %}
-  {{ hostvars[inventory_hostname].polkadot_additional_common_flags }} \
-  {% endif %}
-  {% if hostvars[inventory_hostname].polkadot_additional_validator_flags is defined and hostvars[inventory_hostname].polkadot_additional_validator_flags|length %}
-  {{ hostvars[inventory_hostname].polkadot_additional_validator_flags }} \
+  {% if polkadot_additional_common_flags is defined and polkadot_additional_common_flags|length %}
+  {{ polkadot_additional_common_flags }} \
   {% endif %}
   {% if hostvars[inventory_hostname].loggingFilter is defined and hostvars[inventory_hostname].loggingFilter|length %}
   -l{{ hostvars[inventory_hostname].loggingFilter }} \
   {% endif %}
+  --node-key={{ hostvars[inventory_hostname].nodeKey }} \
   --chain={{ chain }} \
   {% if hostvars[inventory_hostname].base_path is defined and hostvars[inventory_hostname].base_path|length %}
   --base-path '{{ hostvars[inventory_hostname].base_path }}' \
   {% endif %}
   {% if hostvars[inventory_hostname].telemetryUrl is defined and hostvars[inventory_hostname].telemetryUrl|length %}
-  --telemetry-url '{{ hostvars[inventory_hostname].telemetryUrl }} 1'
+  --telemetry-url '{{ hostvars[inventory_hostname].telemetryUrl }} 1' \
   {% else %}
-  --no-telemetry
+  --no-telemetry \
+  {% endif %}
+  {% if hostvars[inventory_hostname].keystorePath is defined and hostvars[inventory_hostname].keystorePath|length %}
+  --keystore-path={{ hostvars[inventory_hostname].keystorePath }}
   {% endif %}
 
 Restart=always

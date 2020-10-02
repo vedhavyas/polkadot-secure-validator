@@ -1,11 +1,11 @@
 ---
 - name: create polkadot group
   group:
-    name: polkadot
+    name: "{{ project }}"
     state: present
 
 - name: add polkadot user
   user:
-    name: polkadot
-    group: polkadot
+    name: "{{ project }}"
+    group: "{{ project }}"
     append: yes

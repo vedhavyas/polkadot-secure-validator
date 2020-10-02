@@ -1,8 +1,8 @@
 {
-  "project": "<whatever-name-you-want>",
+  "project": "centrifuge-chain",
   "polkadotBinary": {
-    "url": "<url-to-most-recent-polkadot-binary>",
-    "checksum": "sha256:<checksum-of-most-recent-polkadot-binary>"
+    "url": "https://github.com/centrifuge/centrifuge-chain/releases/download/v2.0.0-rc6/centrifuge-chain",
+    "checksum": "sha256:28ac19d0b8c897459e335a7275662ba46399306ff1ee6d6b73dfca8715edeee3"
   },
   "nodeExporter": {
     "enabled": true,
@@ -48,7 +48,7 @@
         "count": 1,
         "location": "<azure-server-location>",
         "sshUser": "<whatever-azure-ssh-username-you-want>"
-      },      
+      },
       {
         "provider": "gcp",
         "machineType": "n1-standard-2",

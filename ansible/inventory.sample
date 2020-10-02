@@ -14,6 +14,7 @@ validator-0
 [all:vars]
 # The name for how each node should be prefixed for the telemetry name
 project=alice-in-wonderland
+validator_name=validatorName
 
 # Can be left as is.
 ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ConnectTimeout=15'
