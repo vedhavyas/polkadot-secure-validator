@@ -2,7 +2,7 @@
   shell: |
     set -o pipefail
     journalctl -u {{ project }} --no-pager > /root/{{ project }}.log
-    tail -n 10000 /root/{{ project }}.log
+    tail -n 30 /root/{{ project }}.log
   become: yes
   args:
     executable: /bin/bash
@@ -11,7 +11,7 @@
 
 - name: result
   debug:
-    msg: "Command result: {{ command_output.stdout }}"
+    var: command_output.stdout_lines
 
 - name: remove log
   file:
