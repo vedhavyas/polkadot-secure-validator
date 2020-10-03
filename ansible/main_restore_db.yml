@@ -1,5 +1,0 @@
-- hosts: new_validator
-  become: yes
-  strategy: free
-  roles:
-  - polkadot-restore-db
