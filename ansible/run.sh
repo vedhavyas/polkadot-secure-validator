@@ -10,15 +10,15 @@ function handle_error() {
   fi
 }
 
-echo "Sudo password for remote servers:"
-read -s SUDO_PW
+#echo "Sudo password for remote servers:"
+#read -s SUDO_PW
 
 echo -n ">> Testing Ansible availability... "
-out=$((ansible --version) 2>&1)
+out=$( (ansible --version) 2>&1)
 handle_error "$out"
 
 echo -n ">> Finding validator hosts... "
-out=$((ansible -i inventory.ini validator --list-hosts) 2>/dev/null)
+out=$( (ansible -i "$1" validator --list-hosts) 2>/dev/null)
 if [[ $out == *"hosts (0)"* ]]; then
   out="No hosts found, exiting..."
   (exit 1)
@@ -29,11 +29,11 @@ else
 fi
 
 echo -n ">> Testing connectivity to nodes... "
-out=$((ansible all -i inventory.ini -m ping --become --extra-vars "ansible_become_pass='$SUDO_PW'") 2>&1)
+out=$( (ansible all -i "$1" -m ping --become --extra-vars "ansible_become_pass=''") 2>&1)
 handle_error "$out"
 
 echo ">> Executing Ansible Playbook..."
 
-ansible-playbook -i inventory.ini main.yml --become --extra-vars "ansible_become_pass='$SUDO_PW'"
+ansible-playbook -i "$1" "$2" --become --extra-vars "ansible_become_pass=''"
 
 echo ">> Done!"

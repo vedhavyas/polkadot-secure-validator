@@ -12,26 +12,6 @@
 - name: proxy setup
   import_tasks: proxy.yml
 
-- name: create a ext4 filesystem on /dev/sdb
-  filesystem:
-    fstype: ext4
-    dev: /dev/sdb
-
-- name: mount up device by id
-  mount:
-    path: "/home/{{ project }}"
-    src: /dev/sdb
-    fstype: ext4
-    state: mounted
-
-- name: change ownership data dir
-  file:
-    path: "/home/{{ project }}"
-    state: directory
-    recurse: yes
-    owner: "{{ project }}"
-    group: "{{ project }}"
-
 - name: service setup
   import_tasks: service.yml
 
@@ -41,7 +21,3 @@
 
 - name: session management
   import_tasks: session.yml
-
-- name: install monitoring
-  import_role:
-    name: monitoring

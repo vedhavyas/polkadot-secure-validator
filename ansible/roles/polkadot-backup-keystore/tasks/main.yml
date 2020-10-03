@@ -1,5 +1,5 @@
 - name: backup keystore
-  copy:
+  synchronize:
+    mode: pull
     src: "{{ hostvars[inventory_hostname].keystorePath }}"
-    dest: "/home/{{ project }}/keystore"
-    remote_src: yes
+    dest: "/Users/vedhavyas/Google\ Drive/{{ project }}/{{ chain }}/"

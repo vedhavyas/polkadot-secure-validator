@@ -2,7 +2,7 @@
   shell: |
     set -o pipefail
     journalctl -u {{ project }} --no-pager > /root/{{ project }}.log
-    tail -n 10000 /root/{{ project }}.log | grep "Waiting to import block"
+    tail -n 10000 /root/{{ project }}.log
   become: yes
   args:
     executable: /bin/bash
