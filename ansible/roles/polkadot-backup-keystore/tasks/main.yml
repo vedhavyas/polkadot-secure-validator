@@ -2,4 +2,4 @@
   synchronize:
     mode: pull
     src: "{{ hostvars[inventory_hostname].keystorePath }}"
-    dest: "/Users/vedhavyas/Google\ Drive/{{ project }}/{{ chain }}/"
+    dest: "{{ hostvars[inventory_hostname].backupKeys }}"
