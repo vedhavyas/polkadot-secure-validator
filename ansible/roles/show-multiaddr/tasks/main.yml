@@ -14,6 +14,11 @@
   set_fact:
     p2p_peer_id: "{{ peerId.json.result }}"
 
+- name: register public ip
+  uri:
+    url: https://api.ipify.org?format=json
+  register: public_ip
+
 - name: result
   debug:
-    msg: "/ip4/{{ hostvars[inventory_hostname].vpnpeer_address }}/tcp/30333/p2p/{{ p2p_peer_id }}"
+    msg: "/ip4/{{ hostvars[inventory_hostname].public_ip.json.ip }}/tcp/30333/p2p/{{ p2p_peer_id }}"

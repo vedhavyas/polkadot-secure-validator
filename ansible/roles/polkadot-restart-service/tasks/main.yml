@@ -1,4 +1,4 @@
 - name: restart polkadot service
   systemd:
-    name: polkadot.service
+    name: "{{ project }}.service"
     state: restarted

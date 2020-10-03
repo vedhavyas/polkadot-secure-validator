@@ -23,7 +23,7 @@
 - name: create proxy service file
   template:
     src: proxy.conf.j2
-    dest: /etc/nginx/streams-enabled/polkadot-proxy.conf
+    dest: "/etc/nginx/streams-enabled/{{ project }}-proxy.conf"
     mode: 0600
 
 - name: restart nginx service
