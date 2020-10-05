@@ -1,0 +1,16 @@
+---
+- name: create an ext4 filesystem
+  filesystem:
+    fstype: ext4
+    dev: "{{ dev }}"
+  when:
+    - ext4Dev != ""
+
+- name: mount up device by id
+  mount:
+    path: "{{ ext4Path }}"
+    src: "{{ ext4Dev }}"
+    fstype: ext4
+    state: mounted
+  when:
+    - ext4Path != ""

@@ -1,0 +1,26 @@
+---
+- name: download GCP add-agent repo
+  get_url:
+    url: 'https://dl.google.com/cloudagents/add-monitoring-agent-repo.sh'
+    dest: /usr/local/bin/add-monitoring-agent-repo.sh
+    mode: '0700'
+    owner: "{{ project }}"
+    group: "{{ project }}"
+
+- name: execute add stackdriver repo
+  shell: /usr/local/bin/add-monitoring-agent-repo.sh
+
+- name: install jq
+  apt:
+    name: jq
+    state: present
+    update_cache: yes
+
+- name: install stackdriver daemon
+  apt:
+    name: stackdriver-agent=6.*
+    state: present
+    update_cache: yes
+
+- name: start stackdriver daemon
+  shell: sudo service stackdriver-agent start
