@@ -9,7 +9,7 @@ configure those in an inventory.
 - Enable port 80 on the instance to receive connections from other peers.
 - The Ansible scripts will setup the entire [Application Layer](#application-layer). 
 
-### Use `make` to run any ansible commands. 
+### Use `make` to run any ansible commands. Set `INVENTORY` env to your `inventory.ini` path. 
 - `start`: Starts the new validator. This is an idempotent call.
 - `backup-keys`: Backups keys to local machine at the location defined in the config. Folder must be present.
 - `debug`: prints the validator logs to command line
