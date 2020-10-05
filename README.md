@@ -1,6 +1,5 @@
 # Polkadot Secure Validator Setup
-
-This repo describes a potential setup for a Polkadot validator that aims to
+This repo a fork of [Polkadot secure validator](https://github.com/w3f/polkadot-secure-validator) describes a potential setup for a Polkadot validator that aims to
 prevent some types of potential attacks at the TCP layer and below.
 The [Application Layer](#application-layer) describes in more detail.
 
@@ -16,6 +15,7 @@ Use `make` to run any ansible commands.
 `restart`: restarts the validator
 `show-addrs`: displays validator multi address
 `update-binary`: updates the binary
+`start-monitor`: starts the monitoring service
 
 
 ## Structure

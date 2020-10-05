@@ -1,0 +1,29 @@
+[Unit]
+Description=Monitor
+
+[Service]
+User={{ project }}
+Group={{ project }}
+ExecStart=/usr/local/bin/monitor \
+  -name={{ hostvars[inventory_hostname].validator_name }} \
+  {% if monitor_frequency is defined and monitor_frequency|length %}
+  -monitor-frequency={{ monitor_frequency }} \
+  {% endif %}
+  {% if pagerduty_api_key is defined and pagerduty_api_key|length %}
+  -pagerduty-api-key={{ pagerduty_api_key }} \
+  {% endif %}
+  {% if telegram_chat_id is defined and telegram_chat_id|length %}
+  -telegram-chat-id={{ telegram_chat_id }} \
+  {% endif %}
+  {% if telegram_key is defined and telegram_key|length %}
+  -telegram-key={{ telegram_key }} \
+  {% endif %}
+  {% if telegram_severity is defined and telegram_severity|length %}
+  -telegram-severity={{ telegram_severity }}
+  {% endif %}
+
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,49 @@
+---
+- name: Add Golang ppa
+  apt_repository:
+    repo: ppa:longsleep/golang-backports
+
+- name: Install packages
+  apt:
+    name: golang-go
+    state: present
+    update_cache: yes
+
+- name: Copy Monitor project
+  copy:
+    src: ../../../monitor/
+    dest: /tmp/monitor
+
+- name: Install project
+  shell: |
+    set -o pipefail
+    cd /tmp/monitor
+    make install
+  args:
+    executable: /bin/bash
+
+- name: Create monitor service file
+  template:
+    src: monitor.service.j2
+    dest: "/etc/systemd/system/monitor.service"
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Start Monitor service
+  shell: |
+    set -o pipefail
+    systemctl stop monitor.service || true
+    chown {{ project }}:{{ project }} /usr/local/bin/monitor
+    chmod 755 /usr/local/bin/monitor
+    systemctl daemon-reload
+    systemctl enable --now monitor.service
+  args:
+    executable: /bin/bash
+  changed_when: False
+
+- name: Remove project build
+  file:
+    path: "/tmp/monitor/"
+    state: absent
+
