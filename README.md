@@ -4,11 +4,12 @@ prevent some types of potential attacks at the TCP layer and below.
 The [Application Layer](#application-layer) describes in more detail.
 
 ## Usage
-Setup Debian-based machines yourself, which only need basic SSH access and 
-configure those in an inventory. The Ansible scripts will setup the entire 
-[Application Layer](#application-layer). Enable port 80 on the instance to receive connections from other peers.
+- Setup Debian-based machines yourself, which only need basic SSH access and 
+configure those in an inventory.
+- Enable port 80 on the instance to receive connections from other peers.
+- The Ansible scripts will setup the entire [Application Layer](#application-layer). 
 
-Use `make` to run any ansible commands. 
+### Use `make` to run any ansible commands. Set `INVENTORY` env to your `inventory.ini` path. 
 - `start`: Starts the new validator. This is an idempotent call.
 - `backup-keys`: Backups keys to local machine at the location defined in the config. Folder must be present.
 - `debug`: prints the validator logs to command line
