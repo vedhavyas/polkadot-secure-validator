@@ -2,16 +2,13 @@
 
 function handle_error() {
   if (( $? )) ; then
-    echo -e "[\e[31mERROR\e[39m]"
+    echo -e "[\e[31mERROR\e[0m]"
     echo -e >&2 "CAUSE:\n $1"
     exit 1
   else
-    echo -e "[\e[32mOK\e[39m]"
+    echo -e "[\e[32mOK\e[0m]"
   fi
 }
-
-#echo "Sudo password for remote servers:"
-#read -s SUDO_PW
 
 echo -n ">> Testing Ansible availability... "
 out=$( (ansible --version) 2>&1)
@@ -24,7 +21,7 @@ if [[ $out == *"hosts (0)"* ]]; then
   (exit 1)
   handle_error "$out"
 else
-  echo -e "[\e[32mOK\e[39m]"
+  echo -e "[\e[32mOK\e[0m]"
   echo "$out"
 fi
 

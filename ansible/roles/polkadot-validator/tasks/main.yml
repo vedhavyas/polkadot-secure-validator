@@ -9,6 +9,13 @@
 - name: user and group
   import_tasks: user.yml
 
+- name: mount ext4
+  import_tasks: mount_ext4.yml
+
+- name: install gcp stack driver
+  import_tasks: gcp_stack_driver.yml
+  when: enable_gcp_stack_driver|default(false)|bool
+
 - name: proxy setup
   import_tasks: proxy.yml
 

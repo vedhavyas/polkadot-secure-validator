@@ -1,0 +1,17 @@
+---
+# defaults file for monitor
+# Frequency at which monitor is run
+monitor_frequency: "5m"
+
+# Telegram
+# API key of the bot
+telegram_key: ""
+
+# Chat ID of the group
+telegram_chat_id: ""
+
+# sends status okay messages as well if enabled
+telegram_severity: "2"
+
+# Pagerduty API key
+pagerduty_api_key: ""

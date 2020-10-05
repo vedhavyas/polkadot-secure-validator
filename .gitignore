@@ -11,3 +11,4 @@ validator_keyfile
 validator_keyfile.pub
 credentials.json
 /configs/mainnet.ini
+/monitor/monitor
