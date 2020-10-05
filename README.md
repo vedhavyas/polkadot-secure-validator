@@ -9,17 +9,17 @@ configure those in an inventory. The Ansible scripts will setup the entire
 [Application Layer](#application-layer). Enable port 80 on the instance to receive connections from other peers.
 
 Use `make` to run any ansible commands. 
-`start`: Starts the new validator. This is an idempotent call.
-`backup-keys`: Backups keys to local machine at the location defined in the config. Folder must be present.
-`debug`: prints the validator logs to command line
-`restart`: restarts the validator
-`show-addrs`: displays validator multi address
-`update-binary`: updates the binary
-`start-monitor`: starts the monitoring service
+- `start`: Starts the new validator. This is an idempotent call.
+- `backup-keys`: Backups keys to local machine at the location defined in the config. Folder must be present.
+- `debug`: prints the validator logs to command line
+- `restart`: restarts the validator
+- `show-addrs`: displays validator multi address
+- `update-binary`: updates the binary
+- `start-monitor`: starts the monitoring service
 
 
 ## Structure
-The secure validator setup is composed of a validator that run with a local
+The secure validator setup composed of a validator that run with a local
 instance of NGINX as a reverse TCP proxy in front of them. The validators are instructed to:
 * advertise themselves with the public IP of the node and the port where the
 reverse proxy is listening.
