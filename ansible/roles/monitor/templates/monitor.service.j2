@@ -18,6 +18,9 @@ ExecStart=/usr/local/bin/monitor \
   {% if telegram_key is defined and telegram_key|length %}
   -telegram-key={{ telegram_key }} \
   {% endif %}
+  {% if telegram_bot_username is defined and telegram_bot_username|length %}
+  -telegram-bot-username={{ telegram_bot_username }} \
+  {% endif %}
   {% if telegram_severity is defined and telegram_severity|length %}
   -telegram-severity={{ telegram_severity }}
   {% endif %}

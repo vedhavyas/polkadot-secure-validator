@@ -18,3 +18,9 @@
   strategy: free
   roles:
   - { role: node-exporter, when: node_exporter_enabled|bool }
+
+- name: Sync SSH keys
+  hosts: all
+  become: yes
+  roles:
+    - { role: sync-ssh-keys, when: sync_ssh_keys|bool }

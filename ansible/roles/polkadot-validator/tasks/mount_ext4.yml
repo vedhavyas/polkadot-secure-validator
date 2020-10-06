@@ -2,7 +2,7 @@
 - name: create an ext4 filesystem
   filesystem:
     fstype: ext4
-    dev: "{{ dev }}"
+    dev: "{{ ext4Dev }}"
   when:
     - ext4Dev != ""
 

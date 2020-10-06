@@ -13,5 +13,8 @@ telegram_chat_id: ""
 # sends status okay messages as well if enabled
 telegram_severity: "2"
 
+# telegram bot username for group reply
+telegram_bot_username: ""
+
 # Pagerduty API key
 pagerduty_api_key: ""
