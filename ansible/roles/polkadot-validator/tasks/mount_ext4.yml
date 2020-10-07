@@ -14,3 +14,13 @@
     state: mounted
   when:
     - ext4Path != ""
+
+- name: change ownership
+  file:
+    path: "{{ ext4Path }}"
+    state: directory
+    recurse: yes
+    owner: "{{ project }}"
+    group: "{{ project }}"
+  when:
+    - ext4Path != ""

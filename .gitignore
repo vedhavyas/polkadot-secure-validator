@@ -13,5 +13,6 @@ credentials.json
 /configs/mainnet_personal.ini
 /monitor/monitor
 /.envrc
-/configs/ssh/*
+/configs/ssh
 /configs/amber_centrifuge.ini
+/configs/mainnet_centrifuge.ini
