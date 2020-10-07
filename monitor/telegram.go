@@ -11,17 +11,19 @@ import (
 )
 
 type Telegram struct {
-	client   *tgo.Client
-	chatID   string
-	severity Severity
-	mu       sync.RWMutex
+	client      *tgo.Client
+	chatID      string
+	botUsername string
+	severity    Severity
+	mu          sync.RWMutex
 }
 
 func NewTelegramBot(config Config) *Telegram {
 	return &Telegram{
-		client:   tgo.NewClient(config.TelegramKey),
-		chatID:   config.TelegramChatID,
-		severity: Severity(config.TelegramSeverity),
+		client:      tgo.NewClient(config.TelegramKey),
+		chatID:      config.TelegramChatID,
+		severity:    Severity(config.TelegramSeverity),
+		botUsername: config.TelegramBotUsername,
 	}
 }
 
@@ -39,17 +41,17 @@ func (t *Telegram) Start(ctx context.Context) {
 
 			{
 				Command:     "info",
-				Description: "Subscribe to Info level status updates.",
+				Description: "Subscribe to Info level log updates.",
 			},
 
 			{
 				Command:     "warn",
-				Description: "Subscribe to Warning level status updates.",
+				Description: "Subscribe to Warning level log updates.",
 			},
 
 			{
 				Command:     "error",
-				Description: "Subscribe to Error level status updates.",
+				Description: "Subscribe to Error level log updates.",
 			},
 		},
 	})
@@ -66,25 +68,36 @@ func (t *Telegram) Start(ctx context.Context) {
 				continue
 			}
 
-			switch strings.ToLower(update.Message.Text) {
+			msg := t.fetchCommand(strings.ToLower(update.Message.Text))
+			switch msg {
 			case "/metrics":
 				log.Println("Received metrics request from the user. Sending the metrics...")
 				t.sendMetrics(update.Message.ID)
 			case "/info":
-				log.Println("Received info enable request from the user. Enabling...")
+				log.Println("Received info log enable request from the user. Enabling...")
 				t.updateSeverity(Info)
-				t.sendString(update.Message.ID, OkayEmoji, true)
+				t.sendString(update.Message.ID, fmt.Sprintf("Log level: Info %s", OkayEmoji), true)
 			case "/warn":
 				log.Println("Received warn enable request from the user. Disabling...")
 				t.updateSeverity(Warn)
-				t.sendString(update.Message.ID, OkayEmoji, true)
+				t.sendString(update.Message.ID, fmt.Sprintf("Log level: Warn %s", WarnEmoji), true)
 			case "/error":
 				log.Println("Received error enable request from the user. Disabling...")
-				t.updateSeverity(Warn)
-				t.sendString(update.Message.ID, OkayEmoji, true)
+				t.updateSeverity(Alert)
+				t.sendString(update.Message.ID, fmt.Sprintf("Log level: Error %s", ErrorEmoji), true)
 			}
 		}
 	}
+}
+
+// fetchCommand intended for this bot else returns message as is
+func (t *Telegram) fetchCommand(msg string) string {
+	split := strings.Split(msg, "@")
+	if len(split) > 1 && strings.TrimSpace(split[1]) == t.botUsername {
+		return split[0]
+	}
+
+	return msg
 }
 
 func (t *Telegram) updateSeverity(severity Severity) {

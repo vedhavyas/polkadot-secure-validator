@@ -13,9 +13,10 @@ type Config struct {
 	Name             string        `json:"name"`
 	MonitorFrequency time.Duration `json:"monitor_frequency"`
 
-	TelegramKey      string `json:"telegram_key"`
-	TelegramChatID   string `json:"telegram_chat_id"`
-	TelegramSeverity int    `json:"telegram_severity"`
+	TelegramKey         string `json:"telegram_key"`
+	TelegramChatID      string `json:"telegram_chat_id"`
+	TelegramSeverity    int    `json:"telegram_severity"`
+	TelegramBotUsername string `json:"telegram_bot_username"`
 
 	PagerdutyAPIKey string `json:"pagerduty_api_key"`
 }
