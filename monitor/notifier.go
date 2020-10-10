@@ -1,9 +1,15 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os/exec"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -29,14 +35,14 @@ func InitMonitor(ctx context.Context, config Config, listeners []Listener) {
 	log.Printf("Checking every %s...\n", config.MonitorFrequency)
 
 	tick := time.NewTicker(config.MonitorFrequency)
-	var previous Metrics
+	var prevMetrics Metrics
 	for {
 		select {
 		case <-ctx.Done():
 			log.Println("Stopping monitor...")
 			return
 		case <-tick.C:
-			current, err := FetchMetrics()
+			current, err := FetchMetrics(config.MonitorFrequency)
 			if err != nil {
 				notifyError(err.Error(), listeners)
 				continue
@@ -47,10 +53,10 @@ func InitMonitor(ctx context.Context, config Config, listeners []Listener) {
 				continue
 			}
 
-			if previous.BlockHeight.Finalized != nil &&
-				current.BlockHeight.Finalized.Cmp(&previous.BlockHeight.Finalized.Int) <= 0 {
+			if prevMetrics.BlockHeight.Finalized != nil &&
+				current.BlockHeight.Finalized.Cmp(&prevMetrics.BlockHeight.Finalized.Int) <= 0 {
 				notifyError(
-					fmt.Sprintf("Node hasn't finalised new block since `%s`", previous.BlockHeight.Finalized.String()),
+					fmt.Sprintf("Node hasn't finalised new block since `%s`", prevMetrics.BlockHeight.Finalized.String()),
 					listeners)
 				continue
 			}
@@ -62,10 +68,30 @@ func InitMonitor(ctx context.Context, config Config, listeners []Listener) {
 				continue
 			}
 
+			if !current.ValidatorStats.IsValidating {
+				if prevMetrics.ValidatorStats.IsValidating {
+					notifyWarn(
+						fmt.Sprintf("Node didn't produce blocks in last %f minutes", config.MonitorFrequency.Minutes()),
+						listeners,
+					)
+				}
+				continue
+			}
+
+			if prevMetrics.ValidatorStats.IsValidating {
+				if current.ValidatorStats.LastProduced.Cmp(&prevMetrics.ValidatorStats.LastProduced.Int) <= 0 {
+					notifyWarn(
+						fmt.Sprintf("Node didn't produce blocks in last %f minutes", config.MonitorFrequency.Minutes()),
+						listeners,
+					)
+				}
+				continue
+			}
+
 			// all good here
 			notifyOk(listeners)
-			previous = current
-			log.Println(previous)
+			prevMetrics = current
+			log.Println(prevMetrics)
 		}
 	}
 }
@@ -86,4 +112,72 @@ func notify(severity Severity, listeners []Listener, msg string) {
 	for _, listener := range listeners {
 		listener.Notify(severity, msg)
 	}
+}
+
+type ValidatorStats struct {
+	IsValidating bool  `json:"is_validating"`
+	LastProduced *bint `json:"last_produced"`
+}
+
+func fetchValidatorStats(frequency time.Duration) (ValidatorStats, error) {
+	cmd := exec.Command(
+		"journalctl",
+		"-u", "centrifuge",
+		"-o", "json",
+		"--no-pager",
+		"--since", fmt.Sprintf("%d minutes ago", int(frequency.Minutes())+1))
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	output, err := cmd.Output()
+	if err != nil {
+		return ValidatorStats{}, fmt.Errorf("%v: %v", err, stderr.String())
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(output))
+	var vs ValidatorStats
+	var c int
+	for scanner.Scan() {
+		l := strings.TrimSpace(scanner.Text())
+		nvs, err := parseValidatorLog(l)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		if nvs.LastProduced == nil {
+			continue
+		}
+
+		c++
+		vs = nvs
+	}
+
+	log.Println("Found:", c, "logs")
+	return vs, nil
+}
+
+var valRegex = regexp.MustCompile(`🎁 Prepared block for proposing at ([0-9]+)`)
+
+func parseValidatorLog(l string) (ValidatorStats, error) {
+	var message struct {
+		Message string `json:"MESSAGE"`
+	}
+
+	if err := json.Unmarshal([]byte(l), &message); err != nil {
+		return ValidatorStats{}, err
+	}
+
+	res := valRegex.FindAllStringSubmatch(message.Message, -1)
+	var latest *bint
+	for _, s := range res {
+		if len(s) > 1 {
+			latest = mustBigInt(s[1])
+		}
+	}
+
+	return ValidatorStats{
+		IsValidating: latest != nil,
+		LastProduced: latest,
+	}, nil
 }

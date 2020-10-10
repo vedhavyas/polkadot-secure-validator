@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/vedhavyas/tgo"
 )
@@ -15,6 +16,7 @@ type Telegram struct {
 	chatID      string
 	botUsername string
 	severity    Severity
+	frequency   time.Duration
 	mu          sync.RWMutex
 }
 
@@ -24,6 +26,7 @@ func NewTelegramBot(config Config) *Telegram {
 		chatID:      config.TelegramChatID,
 		severity:    Severity(config.TelegramSeverity),
 		botUsername: config.TelegramBotUsername,
+		frequency:   config.MonitorFrequency,
 	}
 }
 
@@ -129,9 +132,9 @@ func wrapMessage(emoji, message string) string {
 	return fmt.Sprintf("Status: %s\n%s", emoji, message)
 }
 func (t *Telegram) sendMetrics(replyID int) {
-	metrics, err := FetchMetrics()
+	metrics, err := FetchMetrics(t.frequency)
 	if err != nil {
-		t.sendString(replyID, err.Error(), true)
+		t.sendString(replyID, wrapMessage(ErrorEmoji, err.Error()), true)
 		return
 	}
 
