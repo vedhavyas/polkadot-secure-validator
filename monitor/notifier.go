@@ -42,7 +42,7 @@ func InitMonitor(ctx context.Context, config Config, listeners []Listener) {
 			log.Println("Stopping monitor...")
 			return
 		case <-tick.C:
-			current, err := FetchMetrics(config.MonitorFrequency)
+			current, err := FetchMetrics(prevMetrics.ValidatorStats.cursor)
 			if err != nil {
 				notifyError(err.Error(), listeners)
 				continue
@@ -71,21 +71,21 @@ func InitMonitor(ctx context.Context, config Config, listeners []Listener) {
 			if !current.ValidatorStats.IsValidating {
 				if prevMetrics.ValidatorStats.IsValidating {
 					notifyWarn(
-						fmt.Sprintf("Node didn't produce blocks in last %f minutes", config.MonitorFrequency.Minutes()),
+						fmt.Sprintf("Node didn't produce blocks in last %d minutes", config.MonitorFrequency.Minutes()),
 						listeners,
 					)
+					continue
 				}
-				continue
 			}
 
 			if prevMetrics.ValidatorStats.IsValidating {
 				if current.ValidatorStats.LastProduced.Cmp(&prevMetrics.ValidatorStats.LastProduced.Int) <= 0 {
 					notifyWarn(
-						fmt.Sprintf("Node didn't produce blocks in last %f minutes", config.MonitorFrequency.Minutes()),
+						fmt.Sprintf("Node didn't produce blocks in last %d minutes", config.MonitorFrequency.Minutes()),
 						listeners,
 					)
+					continue
 				}
-				continue
 			}
 
 			// all good here
@@ -115,20 +115,26 @@ func notify(severity Severity, listeners []Listener, msg string) {
 }
 
 type ValidatorStats struct {
-	IsValidating bool  `json:"is_validating"`
-	LastProduced *bint `json:"last_produced"`
+	IsValidating   bool `json:"is_validating"`
+	BlocksProduced int  `json:"blocks_produced"`
+	cursor         string
+	LastProduced   *bint `json:"last_produced"`
 }
 
-func fetchValidatorStats(frequency time.Duration) (ValidatorStats, error) {
+func fetchValidatorStats(prevCursor string) (ValidatorStats, error) {
 	cmd := exec.Command(
 		"journalctl",
+		// TODO: make it configurable
 		"-u", "centrifuge",
 		"-o", "json",
-		"--no-pager",
-		"--since", fmt.Sprintf("%d minutes ago", int(frequency.Minutes())+1))
+		"--no-pager")
+	if prevCursor != "" {
+		cmd.Args = append(cmd.Args, "--after-cursor", prevCursor)
+	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
+	log.Println(cmd.String())
 	output, err := cmd.Output()
 	if err != nil {
 		return ValidatorStats{}, fmt.Errorf("%v: %v", err, stderr.String())
@@ -145,6 +151,7 @@ func fetchValidatorStats(frequency time.Duration) (ValidatorStats, error) {
 			continue
 		}
 
+		vs.cursor = nvs.cursor
 		if nvs.LastProduced == nil {
 			continue
 		}
@@ -154,6 +161,7 @@ func fetchValidatorStats(frequency time.Duration) (ValidatorStats, error) {
 	}
 
 	log.Println("Found:", c, "logs")
+	vs.BlocksProduced = c
 	return vs, nil
 }
 
@@ -161,6 +169,7 @@ var valRegex = regexp.MustCompile(`🎁 Prepared block for proposing at ([0-9]+)
 
 func parseValidatorLog(l string) (ValidatorStats, error) {
 	var message struct {
+		Cursor  string `json:"__CURSOR"`
 		Message string `json:"MESSAGE"`
 	}
 
@@ -179,5 +188,6 @@ func parseValidatorLog(l string) (ValidatorStats, error) {
 	return ValidatorStats{
 		IsValidating: latest != nil,
 		LastProduced: latest,
+		cursor:       message.Cursor,
 	}, nil
 }
