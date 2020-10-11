@@ -15,6 +15,7 @@ type Telegram struct {
 	chatID      string
 	botUsername string
 	severity    Severity
+	prevVS      ValidatorStats
 	mu          sync.RWMutex
 }
 
@@ -129,10 +130,15 @@ func wrapMessage(emoji, message string) string {
 	return fmt.Sprintf("Status: %s\n%s", emoji, message)
 }
 func (t *Telegram) sendMetrics(replyID int) {
-	metrics, err := FetchMetrics()
+	metrics, err := FetchMetrics(t.prevVS.cursor)
 	if err != nil {
-		t.sendString(replyID, err.Error(), true)
+		t.sendString(replyID, wrapMessage(ErrorEmoji, err.Error()), true)
 		return
+	}
+
+	if metrics.ValidatorStats.LastProduced == nil {
+		metrics.ValidatorStats.LastProduced = t.prevVS.LastProduced
+		metrics.ValidatorStats.IsValidating = t.prevVS.IsValidating
 	}
 
 	str := metrics.String()
@@ -146,6 +152,7 @@ func (t *Telegram) sendMetrics(replyID int) {
 	if err != nil {
 		log.Printf("failed to send metrics to telegram bot: %v\n", err)
 	}
+	t.prevVS = metrics.ValidatorStats
 }
 
 func (t *Telegram) sendString(replyID int, msg string, notify bool) {

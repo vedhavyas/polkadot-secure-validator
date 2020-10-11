@@ -38,11 +38,12 @@ type Metrics struct {
 		Finalized  *bint `json:"finalized"`
 		SyncTarget *bint `json:"sync_target"`
 	} `json:"block_height"`
-	Peers          int  `json:"peers"`
-	SyncPeers      int  `json:"sync_peers"`
-	ForkTargets    int  `json:"fork_targets"`
-	QueuedBlocks   int  `json:"queued_blocks"`
-	IsMajorSyncing bool `json:"is_major_syncing"`
+	Peers          int            `json:"peers"`
+	SyncPeers      int            `json:"sync_peers"`
+	ForkTargets    int            `json:"fork_targets"`
+	QueuedBlocks   int            `json:"queued_blocks"`
+	IsMajorSyncing bool           `json:"is_major_syncing"`
+	ValidatorStats ValidatorStats `json:"validator_stats"`
 }
 
 func fetchDataFromPrometheus() ([]byte, error) {
@@ -116,7 +117,7 @@ func mustBigInt(s string) *bint {
 	return &bint{*i}
 }
 
-func FetchMetrics() (Metrics, error) {
+func FetchMetrics(prevCursor string) (Metrics, error) {
 	var metrics Metrics
 	data, err := fetchDataFromPrometheus()
 	if err != nil {
@@ -155,6 +156,13 @@ func FetchMetrics() (Metrics, error) {
 		}
 	}
 
+	log.Println("Fetching journalctl logs...")
+	vs, err := fetchValidatorStats(prevCursor)
+	if err != nil {
+		return metrics, err
+	}
+	log.Println("Logs fetched successfully.", vs)
+	metrics.ValidatorStats = vs
 	return metrics, nil
 }
 
