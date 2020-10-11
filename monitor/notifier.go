@@ -71,7 +71,8 @@ func InitMonitor(ctx context.Context, config Config, listeners []Listener) {
 			if !current.ValidatorStats.IsValidating {
 				if prevMetrics.ValidatorStats.IsValidating {
 					notifyWarn(
-						fmt.Sprintf("Node didn't produce blocks in last %d minutes", config.MonitorFrequency.Minutes()),
+						fmt.Sprintf("Node didn't produce blocks in last %d minutes",
+							int(config.MonitorFrequency.Minutes())),
 						listeners,
 					)
 					continue
@@ -81,7 +82,8 @@ func InitMonitor(ctx context.Context, config Config, listeners []Listener) {
 			if prevMetrics.ValidatorStats.IsValidating {
 				if current.ValidatorStats.LastProduced.Cmp(&prevMetrics.ValidatorStats.LastProduced.Int) <= 0 {
 					notifyWarn(
-						fmt.Sprintf("Node didn't produce blocks in last %d minutes", config.MonitorFrequency.Minutes()),
+						fmt.Sprintf("Node didn't produce blocks in last %d minutes",
+							int(config.MonitorFrequency.Minutes())),
 						listeners,
 					)
 					continue

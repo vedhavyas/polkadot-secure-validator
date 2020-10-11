@@ -1,7 +1,7 @@
 ---
 # defaults file for monitor
 # Frequency at which monitor is run
-monitor_frequency: "5m"
+monitor_frequency: "15m"
 
 # Telegram
 # API key of the bot
