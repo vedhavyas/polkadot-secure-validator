@@ -18,3 +18,15 @@ telegram_bot_username: ""
 
 # Pagerduty API key
 pagerduty_api_key: ""
+
+# Currency decimal count
+decimal: "1"
+
+# Currency symbol
+symbol: ""
+
+# Auto Payout HotWallet
+payout_hot_wallet_uri: ""
+
+# Validator stash
+validator_stash: ""
