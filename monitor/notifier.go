@@ -28,6 +28,7 @@ const (
 type Listener interface {
 	Start(ctx context.Context)
 	Notify(severity Severity, message string)
+	SendMessage(message string)
 }
 
 func InitMonitor(ctx context.Context, config Config, listeners []Listener) {

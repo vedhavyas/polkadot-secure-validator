@@ -107,6 +107,10 @@ func (t *Telegram) updateSeverity(severity Severity) {
 	t.severity = severity
 }
 
+func (t *Telegram) SendMessage(message string) {
+	t.sendString(0, message, true)
+}
+
 func (t *Telegram) Notify(severity Severity, message string) {
 	t.mu.RLock()
 	current := t.severity

@@ -19,6 +19,13 @@ type Config struct {
 	TelegramBotUsername string `json:"telegram_bot_username"`
 
 	PagerdutyAPIKey string `json:"pagerduty_api_key"`
+
+	Payout struct {
+		Stash        string `json:"stash"`
+		HotWalletURI string `json:"hot_wallet_uri"`
+		Decimals     int    `json:"decimals"`
+		Unit         string `json:"unit"`
+	} `json:"payout"`
 }
 
 func (c Config) IsTelegramBotEnabled() bool {
@@ -30,6 +37,7 @@ func main() {
 		MonitorFrequency: time.Minute * 5,
 		Name:             "Monitor",
 	}
+	config.Payout.Decimals = 1
 	err := gflag.ParseToDef(&config)
 	if err != nil {
 		panic(err)
@@ -57,5 +65,17 @@ func main() {
 	}
 
 	go InitMonitor(ctx, config, listeners)
+
+	if config.Payout.Stash != "" || config.Payout.HotWalletURI != "" {
+		log.Println("Initiating Auto payout...")
+		err := InitAutoPayout(ctx, config.Payout.Stash,
+			config.Payout.HotWalletURI,
+			config.Payout.Unit,
+			config.Payout.Decimals, listeners)
+		if err != nil {
+			log.Println("Failed to init auto payout", err)
+		}
+	}
+
 	select {}
 }

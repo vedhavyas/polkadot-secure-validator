@@ -9,6 +9,15 @@
     state: present
     update_cache: yes
 
+- name: download subkey binary
+  get_url:
+    url: "https://storage.googleapis.com/centrifuge-dev-public/subkey-rc6"
+    dest: "/usr/local/bin/subkey"
+    force: true
+    mode: '0700'
+    owner: '{{ project }}'
+    group: '{{ project }}'
+
 - name: Copy Monitor project
   copy:
     src: ../../../monitor/

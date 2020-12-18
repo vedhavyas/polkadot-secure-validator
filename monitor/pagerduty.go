@@ -76,3 +76,7 @@ func (p *Pagerduty) Notify(severity Severity, message string) {
 
 	log.Printf("Pagerduty response: %s\n", string(d))
 }
+
+func (p *Pagerduty) SendMessage(message string) {
+	return
+}

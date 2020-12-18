@@ -12,6 +12,18 @@ ExecStart=/usr/local/bin/monitor \
   {% if pagerduty_api_key is defined and pagerduty_api_key|length %}
   -pagerduty-api-key={{ pagerduty_api_key }} \
   {% endif %}
+  {% if decimal is defined and decimal|length %}
+  -payout-decimals={{ decimal }} \
+  {% endif %}
+  {% if symbol is defined and symbol|length %}
+  -payout-unit={{ symbol }} \
+  {% endif %}
+  {% if payout_hot_wallet_uri is defined and payout_hot_wallet_uri|length %}
+  -payout-hot-wallet-uri={{ payout_hot_wallet_uri }} \
+  {% endif %}
+  {% if validator_stash is defined and validator_stash|length %}
+  -payout-stash={{ validator_stash }} \
+  {% endif %}
   {% if telegram_chat_id is defined and telegram_chat_id|length %}
   -telegram-chat-id={{ telegram_chat_id }} \
   {% endif %}
