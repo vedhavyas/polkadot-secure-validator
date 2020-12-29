@@ -117,7 +117,7 @@ func mustBigInt(s string) *bint {
 	return &bint{*i}
 }
 
-func FetchMetrics(prevCursor string) (Metrics, error) {
+func FetchMetrics() (Metrics, error) {
 	var metrics Metrics
 	data, err := fetchDataFromPrometheus()
 	if err != nil {
@@ -157,7 +157,7 @@ func FetchMetrics(prevCursor string) (Metrics, error) {
 	}
 
 	log.Println("Fetching journalctl logs...")
-	vs, err := fetchValidatorStats(prevCursor)
+	vs, err := fetchValidatorStats()
 	if err != nil {
 		return metrics, err
 	}

@@ -134,7 +134,7 @@ func wrapMessage(emoji, message string) string {
 	return fmt.Sprintf("Status: %s\n%s", emoji, message)
 }
 func (t *Telegram) sendMetrics(replyID int) {
-	metrics, err := FetchMetrics(t.prevVS.cursor)
+	metrics, err := FetchMetrics()
 	if err != nil {
 		t.sendString(replyID, wrapMessage(ErrorEmoji, err.Error()), true)
 		return

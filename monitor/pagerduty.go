@@ -35,7 +35,7 @@ type pgEventRequestParams struct {
 	Payload     payload `json:"payload"`
 }
 
-func (p *Pagerduty) Start(ctx context.Context) {
+func (p *Pagerduty) Start(context.Context) {
 	return
 }
 
@@ -77,6 +77,6 @@ func (p *Pagerduty) Notify(severity Severity, message string) {
 	log.Printf("Pagerduty response: %s\n", string(d))
 }
 
-func (p *Pagerduty) SendMessage(message string) {
+func (p *Pagerduty) SendMessage(string) {
 	return
 }

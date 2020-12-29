@@ -43,7 +43,7 @@ func InitMonitor(ctx context.Context, config Config, listeners []Listener) {
 			log.Println("Stopping monitor...")
 			return
 		case <-tick.C:
-			current, err := FetchMetrics(prevMetrics.ValidatorStats.cursor)
+			current, err := FetchMetrics()
 			if err != nil {
 				notifyError(err.Error(), listeners)
 				continue
@@ -118,22 +118,19 @@ func notify(severity Severity, listeners []Listener, msg string) {
 }
 
 type ValidatorStats struct {
-	IsValidating   bool `json:"is_validating"`
-	BlocksProduced int  `json:"blocks_produced"`
-	cursor         string
+	IsValidating   bool  `json:"is_validating"`
+	BlocksProduced int   `json:"blocks_produced"`
 	LastProduced   *bint `json:"last_produced"`
 }
 
-func fetchValidatorStats(prevCursor string) (ValidatorStats, error) {
+func fetchValidatorStats() (ValidatorStats, error) {
 	cmd := exec.Command(
 		"journalctl",
 		// TODO: make it configurable
 		"-u", "centrifuge",
 		"-o", "json",
+		"--since", "-4hours",
 		"--no-pager")
-	if prevCursor != "" {
-		cmd.Args = append(cmd.Args, "--after-cursor", prevCursor)
-	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
@@ -154,7 +151,6 @@ func fetchValidatorStats(prevCursor string) (ValidatorStats, error) {
 			continue
 		}
 
-		vs.cursor = nvs.cursor
 		if nvs.LastProduced == nil {
 			continue
 		}
@@ -191,6 +187,5 @@ func parseValidatorLog(l string) (ValidatorStats, error) {
 	return ValidatorStats{
 		IsValidating: latest != nil,
 		LastProduced: latest,
-		cursor:       message.Cursor,
 	}, nil
 }
