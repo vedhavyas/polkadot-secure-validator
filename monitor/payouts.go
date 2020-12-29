@@ -33,7 +33,7 @@ func InitAutoPayout(ctx context.Context, stash, hotWallet, unit string, decimals
 			return
 		}
 
-		batches := batchUnclaimed(10, unclaimed)
+		batches := batchUnclaimed(9, unclaimed)
 		for _, batch := range batches {
 			err := payout(api, accountID, batch, kr)
 			if err != nil {
@@ -289,8 +289,8 @@ func fetchUnclaimedEra(api *gsrpc.SubstrateAPI, stash types.AccountID) ([]types.
 }
 
 func batchUnclaimed(maxErasPerBatch int, eras []types.U32) [][]types.U32 {
-	if len(eras) <= maxErasPerBatch {
-		return [][]types.U32{eras}
+	if len(eras) < 1 {
+		return nil
 	}
 
 	var res [][]types.U32
