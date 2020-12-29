@@ -27,13 +27,19 @@ func InitAutoPayout(ctx context.Context, stash, hotWallet, unit string, decimals
 
 	accountID := getAccountID(stash)
 	go listenForEraPayout(ctx, api, func(block types.Hash, eraIndex types.U32) {
-		msg := fmt.Sprintf("Initiating payout for Era(%d)", eraIndex)
-		err := payout(api, accountID, eraIndex, kr)
+		unclaimed, err := fetchUnclaimedEra(api, accountID)
 		if err != nil {
-			msg = fmt.Sprintf("Failed to init payout for Era(%d): %v", eraIndex, err)
+			sendMessage(fmt.Sprintf("Failed to fetch unclaimed eras: %v", err), listeners)
+			return
 		}
 
-		sendMessage(msg, listeners)
+		batches := batchUnclaimed(10, unclaimed)
+		for _, batch := range batches {
+			err := payout(api, accountID, batch, kr)
+			if err != nil {
+				sendMessage(fmt.Sprintf("Failed to init payout for Eras(%d): %v", batch, err), listeners)
+			}
+		}
 	})
 
 	go listenForPayoutReward(ctx, api, accountID, func(block types.Hash, stash types.AccountID,
@@ -52,13 +58,23 @@ func sendMessage(msg string, listeners []Listener) {
 	}
 }
 
-func payout(api *gsrpc.SubstrateAPI, stash types.AccountID, eraIndex types.U32, kr signature.KeyringPair) error {
+func payout(api *gsrpc.SubstrateAPI, stash types.AccountID, eras []types.U32, kr signature.KeyringPair) error {
 	meta, err := api.RPC.State.GetMetadataLatest()
 	if err != nil {
 		return err
 	}
 
-	c, err := types.NewCall(meta, "Staking.payout_stakers", stash, eraIndex)
+	var calls []types.Call
+	for _, era := range eras {
+		c, err := types.NewCall(meta, "Staking.payout_stakers", stash, era)
+		if err != nil {
+			return err
+		}
+
+		calls = append(calls, c)
+	}
+
+	c, err := types.NewCall(meta, "Utility.batch", calls)
 	if err != nil {
 		return err
 	}
@@ -229,4 +245,142 @@ func listenForPayoutReward(
 			}
 		}
 	}
+}
+
+func fetchUnclaimedEra(api *gsrpc.SubstrateAPI, stash types.AccountID) ([]types.U32, error) {
+	controller, err := bonded(api, stash)
+	if err != nil {
+		return nil, err
+	}
+
+	claimed, err := fetchClaimed(api, controller)
+	if err != nil {
+		return nil, err
+	}
+
+	activeEra, err := activeEra(api)
+	if err != nil {
+		return nil, err
+	}
+
+	depth := historyDepth(api, 84)
+	claimedMap := make(map[types.U32]bool)
+	for _, c := range claimed {
+		claimedMap[c] = true
+	}
+
+	var unclaimed []types.U32
+	for i := activeEra - depth - 1; i < activeEra; i++ {
+		exposure, err := fetchExposure(api, i, stash)
+		if err != nil {
+			continue
+		}
+
+		own := big.Int(exposure.Own)
+		zero := big.NewInt(0)
+		if own.Cmp(zero) != 1 || claimedMap[i] {
+			continue
+		}
+
+		unclaimed = append(unclaimed, i)
+	}
+
+	return unclaimed, nil
+}
+
+func batchUnclaimed(maxErasPerBatch int, eras []types.U32) [][]types.U32 {
+	if len(eras) <= maxErasPerBatch {
+		return [][]types.U32{eras}
+	}
+
+	var res [][]types.U32
+	var cur []types.U32
+	for _, era := range eras {
+		cur = append(cur, era)
+		if len(cur) == maxErasPerBatch {
+			res = append(res, append([]types.U32{}, cur...))
+			cur = nil
+		}
+	}
+
+	if len(cur) > 0 {
+		res = append(res, cur)
+	}
+
+	return res
+}
+
+type StakingLedger struct {
+	Stash         types.AccountID
+	Total, Active types.UCompact
+	Unlocking     []struct {
+		Value types.UCompact
+		Era   types.U32
+	}
+	ClaimedRewards []types.U32
+}
+
+type Exposure struct {
+	Total, Own types.UCompact
+	Others     []struct {
+		Who   types.AccountID
+		Value types.UCompact
+	}
+}
+
+func historyDepth(api *gsrpc.SubstrateAPI, or types.U32) types.U32 {
+	var depth types.U32
+	err := fetchStorage(api, "Staking", "HistoryDepth", nil, nil, &depth)
+	if err != nil {
+		return or
+	}
+
+	return depth
+}
+
+func bonded(api *gsrpc.SubstrateAPI, stash types.AccountID) (acc types.AccountID, err error) {
+	var controller types.AccountID
+	return controller, fetchStorage(api, "Staking", "Bonded", stash[:], nil, &controller)
+}
+
+func fetchClaimed(api *gsrpc.SubstrateAPI, controller types.AccountID) (unclaimed []types.U32, err error) {
+	var res StakingLedger
+	return res.ClaimedRewards, fetchStorage(api, "Staking", "Ledger", controller[:], nil, &res)
+}
+
+func activeEra(api *gsrpc.SubstrateAPI) (types.U32, error) {
+	var eraInfo struct {
+		Era   types.U32
+		Start types.OptionU64
+	}
+	return eraInfo.Era, fetchStorage(api, "Staking", "ActiveEra", nil, nil, &eraInfo)
+}
+
+func fetchExposure(api *gsrpc.SubstrateAPI, era types.U32, stash types.AccountID) (Exposure, error) {
+	var res Exposure
+	eraBytes, err := types.EncodeToBytes(era)
+	if err != nil {
+		return res, err
+	}
+
+	return res, fetchStorage(api, "Staking", "ErasStakers", eraBytes, stash[:], &res)
+}
+
+func fetchStorage(api *gsrpc.SubstrateAPI, prefix, method string, arg1, arg2 []byte, target interface{}) error {
+	meta, err := api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return err
+	}
+
+	key, err := types.CreateStorageKey(meta, prefix, method, arg1, arg2)
+	if err != nil {
+		return err
+	}
+
+	ok, err := api.RPC.State.GetStorageLatest(key, target)
+	if err != nil || !ok {
+		return fmt.Errorf("failed to fetch storage: %w", err)
+	}
+
+	return nil
 }
