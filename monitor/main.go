@@ -45,8 +45,10 @@ func main() {
 	flag.Parse()
 
 	var listeners []Listener
+	var telegram *Telegram
 	if config.IsTelegramBotEnabled() {
-		listeners = append(listeners, NewTelegramBot(config))
+		telegram = NewTelegramBot(config)
+		listeners = append(listeners, telegram)
 	} else {
 		log.Println("Telegram bot disabled.")
 	}
@@ -67,13 +69,22 @@ func main() {
 	go InitMonitor(ctx, config, listeners)
 
 	if config.Payout.Stash != "" || config.Payout.HotWalletURI != "" {
-		log.Println("Initiating Auto payout...")
-		err := InitAutoPayout(ctx, config.Payout.Stash,
+		log.Println("Starting Accountant...")
+		acc, err := NewAccountant(config.Payout.Stash,
 			config.Payout.HotWalletURI,
 			config.Payout.Unit,
 			config.Payout.Decimals, listeners)
 		if err != nil {
-			log.Println("Failed to init auto payout", err)
+			log.Println("Failed to create accountant", err)
+		}
+
+		if telegram != nil {
+			telegram.SetAccountant(acc)
+		}
+
+		err = acc.Start(ctx)
+		if err != nil {
+			log.Println("Failed to start accountant", err)
 		}
 	}
 

@@ -14,42 +14,74 @@ import (
 	"github.com/decred/base58"
 )
 
-func InitAutoPayout(ctx context.Context, stash, hotWallet, unit string, decimals int, listeners []Listener) error {
+type Accountant struct {
+	api       *gsrpc.SubstrateAPI
+	stash     types.AccountID
+	wallet    signature.KeyringPair
+	unit      string
+	decimals  int
+	listeners []Listener
+}
+
+func NewAccountant(stash, hotWallet, unit string, decimals int, listeners []Listener) (*Accountant, error) {
 	api, err := gsrpc.NewSubstrateAPI("ws://127.0.0.1:9944")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	kr, err := signature.KeyringPairFromSecret(hotWallet, "")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	accountID := getAccountID(stash)
-	go listenForEraPayout(ctx, api, func(block types.Hash, eraIndex types.U32) {
-		unclaimed, err := fetchUnclaimedEra(api, accountID)
-		if err != nil {
-			sendMessage(fmt.Sprintf("Failed to fetch unclaimed eras: %v", err), listeners)
-			return
-		}
+	return &Accountant{
+		api:       api,
+		stash:     accountID,
+		wallet:    kr,
+		unit:      unit,
+		decimals:  decimals,
+		listeners: listeners,
+	}, nil
+}
 
-		batches := batchUnclaimed(9, unclaimed)
-		for _, batch := range batches {
-			err := payout(api, accountID, batch, kr)
-			if err != nil {
-				sendMessage(fmt.Sprintf("Failed to init payout for Eras(%d): %v", batch, err), listeners)
-			}
-		}
+func (a *Accountant) Start(ctx context.Context) error {
+	go listenForEraPayout(ctx, a.api, func(block types.Hash, eraIndex types.U32) {
+		a.initiatePayouts()
 	})
 
-	go listenForPayoutReward(ctx, api, accountID, func(block types.Hash, stash types.AccountID,
+	go listenForPayoutReward(ctx, a.api, a.stash, func(block types.Hash, stash types.AccountID,
 		amount types.U128) {
-		payout := amount.Div(amount.Int, big.NewInt(1).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
-		msg := fmt.Sprintf("Reward received: %s %s", payout.String(), unit)
-		sendMessage(msg, listeners)
+		payout := amount.Div(amount.Int, big.NewInt(1).Exp(big.NewInt(10), big.NewInt(int64(a.decimals)), nil))
+		msg := fmt.Sprintf("Reward received: %s %s", payout.String(), a.unit)
+		sendMessage(msg, a.listeners)
 	})
 
 	return nil
+}
+
+func (a *Accountant) initiatePayouts() {
+	fmt.Println("Initiating payouts...")
+	unclaimed, err := fetchUnclaimedEra(a.api, a.stash)
+	if err != nil {
+		fmt.Println(err)
+		sendMessage(fmt.Sprintf("Failed to fetch unclaimed eras: %v", err), a.listeners)
+		return
+	}
+	batches := batchUnclaimed(9, unclaimed)
+	fmt.Println("Unclaimed era batches:", batches)
+	for _, batch := range batches {
+		err := payout(a.api, a.stash, batch, a.wallet)
+		if err != nil {
+			fmt.Println(err)
+			sendMessage(fmt.Sprintf("Failed to init payout for Eras(%d): %v", batch, err), a.listeners)
+		}
+	}
+	fmt.Println("Payouts claimed...")
+}
+
+func (a *Accountant) Payout() {
+	a.initiatePayouts()
 }
 
 func sendMessage(msg string, listeners []Listener) {

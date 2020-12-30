@@ -17,6 +17,7 @@ type Telegram struct {
 	severity    Severity
 	prevVS      ValidatorStats
 	mu          sync.RWMutex
+	accountant  *Accountant
 }
 
 func NewTelegramBot(config Config) *Telegram {
@@ -26,6 +27,12 @@ func NewTelegramBot(config Config) *Telegram {
 		severity:    Severity(config.TelegramSeverity),
 		botUsername: config.TelegramBotUsername,
 	}
+}
+
+func (t *Telegram) SetAccountant(acc *Accountant) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.accountant = acc
 }
 
 func (t *Telegram) Start(ctx context.Context) {
@@ -54,6 +61,10 @@ func (t *Telegram) Start(ctx context.Context) {
 				Command:     "error",
 				Description: "Subscribe to Error level log updates.",
 			},
+			{
+				Command:     "payout",
+				Description: "Payout to nominators",
+			},
 		},
 	})
 	if err != nil || !*ok {
@@ -71,21 +82,24 @@ func (t *Telegram) Start(ctx context.Context) {
 
 			msg := t.fetchCommand(strings.ToLower(update.Message.Text))
 			switch msg {
-			case "/metrics":
+			case "metrics":
 				log.Println("Received metrics request from the user. Sending the metrics...")
 				t.sendMetrics(update.Message.ID)
-			case "/info":
+			case "info":
 				log.Println("Received info log enable request from the user. Enabling...")
 				t.updateSeverity(Info)
 				t.sendString(update.Message.ID, fmt.Sprintf("Log level: Info %s", OkayEmoji), true)
-			case "/warn":
+			case "warn":
 				log.Println("Received warn enable request from the user. Disabling...")
 				t.updateSeverity(Warn)
 				t.sendString(update.Message.ID, fmt.Sprintf("Log level: Warn %s", WarnEmoji), true)
-			case "/error":
+			case "error":
 				log.Println("Received error enable request from the user. Disabling...")
 				t.updateSeverity(Alert)
 				t.sendString(update.Message.ID, fmt.Sprintf("Log level: Error %s", ErrorEmoji), true)
+			case "payout":
+				log.Println("Initiating Payout...")
+				t.accountant.Payout()
 			}
 		}
 	}
@@ -93,6 +107,7 @@ func (t *Telegram) Start(ctx context.Context) {
 
 // fetchCommand intended for this bot else returns message as is
 func (t *Telegram) fetchCommand(msg string) string {
+	msg = strings.TrimPrefix(msg, "/")
 	split := strings.Split(msg, "@")
 	if len(split) > 1 && strings.TrimSpace(split[1]) == t.botUsername {
 		return split[0]
