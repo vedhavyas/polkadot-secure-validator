@@ -64,18 +64,22 @@ func (a *Accountant) initiatePayouts() {
 	fmt.Println("Initiating payouts...")
 	unclaimed, err := fetchUnclaimedEra(a.api, a.stash)
 	if err != nil {
-		fmt.Println(err)
-		sendMessage(fmt.Sprintf("Failed to fetch unclaimed eras: %v", err), a.listeners)
+		fmt.Println(fmt.Sprintf("Failed to fetch unclaimed eras: %v", err))
 		return
 	}
 	batches := batchUnclaimed(9, unclaimed)
 	fmt.Println("Unclaimed era batches:", batches)
+	nonce, err := fetchNonce(a.api, a.wallet.PublicKey)
+	if err != nil {
+		fmt.Println("failed to fetch nonce", err)
+	}
 	for _, batch := range batches {
-		err := payout(a.api, a.stash, batch, a.wallet)
+		err := payout(a.api, a.stash, batch, a.wallet, nonce)
 		if err != nil {
 			fmt.Println(err)
-			sendMessage(fmt.Sprintf("Failed to init payout for Eras(%d): %v", batch, err), a.listeners)
 		}
+
+		nonce = nonce + 1
 	}
 	fmt.Println("Payouts claimed...")
 }
@@ -90,7 +94,27 @@ func sendMessage(msg string, listeners []Listener) {
 	}
 }
 
-func payout(api *gsrpc.SubstrateAPI, stash types.AccountID, eras []types.U32, kr signature.KeyringPair) error {
+func fetchNonce(api *gsrpc.SubstrateAPI, pub []byte) (types.U32, error) {
+	meta, err := api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return 0, err
+	}
+	key, err := types.CreateStorageKey(meta, "System", "Account", pub, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	var accountInfo types.AccountInfo
+	ok, err := api.RPC.State.GetStorageLatest(key, &accountInfo)
+	if err != nil || !ok {
+		return 0, err
+	}
+
+	return accountInfo.Nonce, err
+}
+
+func payout(api *gsrpc.SubstrateAPI, stash types.AccountID, eras []types.U32, kr signature.KeyringPair,
+	nonce types.U32) error {
 	meta, err := api.RPC.State.GetMetadataLatest()
 	if err != nil {
 		return err
@@ -123,18 +147,6 @@ func payout(api *gsrpc.SubstrateAPI, stash types.AccountID, eras []types.U32, kr
 		return err
 	}
 
-	key, err := types.CreateStorageKey(meta, "System", "Account", kr.PublicKey, nil)
-	if err != nil {
-		return err
-	}
-
-	var accountInfo types.AccountInfo
-	ok, err := api.RPC.State.GetStorageLatest(key, &accountInfo)
-	if err != nil || !ok {
-		return err
-	}
-
-	nonce := uint32(accountInfo.Nonce)
 	o := types.SignatureOptions{
 		BlockHash:          genesisHash,
 		Era:                types.ExtrinsicEra{IsMortalEra: false},
