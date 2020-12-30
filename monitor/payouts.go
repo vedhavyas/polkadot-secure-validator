@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client"
@@ -47,6 +48,7 @@ func NewAccountant(stash, hotWallet, unit string, decimals int, listeners []List
 
 func (a *Accountant) Start(ctx context.Context) error {
 	go listenForEraPayout(ctx, a.api, func(block types.Hash, eraIndex types.U32) {
+		log.Println("Era finished", eraIndex)
 		a.initiatePayouts()
 	})
 
@@ -61,27 +63,27 @@ func (a *Accountant) Start(ctx context.Context) error {
 }
 
 func (a *Accountant) initiatePayouts() {
-	fmt.Println("Initiating payouts...")
+	log.Println("Initiating payouts...")
 	unclaimed, err := fetchUnclaimedEra(a.api, a.stash)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Failed to fetch unclaimed eras: %v", err))
+		log.Println(fmt.Sprintf("Failed to fetch unclaimed eras: %v", err))
 		return
 	}
 	batches := batchUnclaimed(9, unclaimed)
-	fmt.Println("Unclaimed era batches:", batches)
+	log.Println("Unclaimed era batches:", batches)
 	nonce, err := fetchNonce(a.api, a.wallet.PublicKey)
 	if err != nil {
-		fmt.Println("failed to fetch nonce", err)
+		log.Println("failed to fetch nonce", err)
 	}
 	for _, batch := range batches {
 		err := payout(a.api, a.stash, batch, a.wallet, nonce)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 
 		nonce = nonce + 1
 	}
-	fmt.Println("Payouts claimed...")
+	log.Println("Payouts claimed...")
 }
 
 func (a *Accountant) Payout() {
@@ -209,14 +211,16 @@ func listenForEraPayout(ctx context.Context, api *gsrpc.SubstrateAPI, onEraFinis
 	eraIndex types.U32)) error {
 	sub, meta, key, err := getEventSubscription(api)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	defer sub.Unsubscribe()
 
 	// outer for loop for subscription notifications
+	log.Println("Watching for ERA Payout events...")
+	defer fmt.Println("Finished watching ERA payout events", err)
 	for {
-
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -234,7 +238,8 @@ func listenForEraPayout(ctx context.Context, api *gsrpc.SubstrateAPI, onEraFinis
 				events := types.EventRecords{}
 				err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 				if err != nil {
-					return err
+					log.Println(err)
+					continue
 				}
 
 				for _, e := range events.Staking_EraPayout {
@@ -252,12 +257,15 @@ func listenForPayoutReward(
 	onReward func(block types.Hash, stash types.AccountID, amount types.U128)) error {
 	sub, meta, key, err := getEventSubscription(api)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	defer sub.Unsubscribe()
 
 	// outer for loop for subscription notifications
+	log.Println("Watching for reward events...")
+	defer fmt.Println("Finished watching reward events", err)
 	for {
 		select {
 		case <-ctx.Done():
@@ -276,7 +284,8 @@ func listenForPayoutReward(
 				events := types.EventRecords{}
 				err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 				if err != nil {
-					return err
+					log.Println(err)
+					continue
 				}
 
 				for _, e := range events.Staking_Reward {

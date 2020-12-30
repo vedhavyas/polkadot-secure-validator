@@ -98,7 +98,6 @@ func (t *Telegram) Start(ctx context.Context) {
 				t.updateSeverity(Alert)
 				t.sendString(update.Message.ID, fmt.Sprintf("Log level: Error %s", ErrorEmoji), true)
 			case "payout":
-				log.Println("Initiating Payout...")
 				t.accountant.Payout()
 			}
 		}

@@ -94,7 +94,6 @@ func InitMonitor(ctx context.Context, config Config, listeners []Listener) {
 			// all good here
 			notifyOk(listeners)
 			prevMetrics = current
-			log.Println(prevMetrics)
 		}
 	}
 }
