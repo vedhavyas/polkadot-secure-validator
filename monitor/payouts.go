@@ -47,17 +47,26 @@ func NewAccountant(stash, hotWallet, unit string, decimals int, listeners []List
 }
 
 func (a *Accountant) Start(ctx context.Context) error {
-	go listenForEraPayout(ctx, a.api, func(block types.Hash, eraIndex types.U32) {
-		log.Println("Era finished", eraIndex)
-		a.initiatePayouts()
-	})
+	go func() {
+		for ctx.Err() != nil {
+			listenForEraPayout(ctx, a.api, func(block types.Hash, eraIndex types.U32) {
+				log.Println("Era finished", eraIndex)
+				a.initiatePayouts()
+			})
+		}
 
-	go listenForPayoutReward(ctx, a.api, a.stash, func(block types.Hash, stash types.AccountID,
-		amount types.U128) {
-		payout := amount.Div(amount.Int, big.NewInt(1).Exp(big.NewInt(10), big.NewInt(int64(a.decimals)), nil))
-		msg := fmt.Sprintf("Reward received: %s %s", payout.String(), a.unit)
-		sendMessage(msg, a.listeners)
-	})
+	}()
+
+	go func() {
+		for ctx.Err() != nil {
+			listenForPayoutReward(ctx, a.api, a.stash, func(block types.Hash, stash types.AccountID,
+				amount types.U128) {
+				payout := amount.Div(amount.Int, big.NewInt(1).Exp(big.NewInt(10), big.NewInt(int64(a.decimals)), nil))
+				msg := fmt.Sprintf("Reward received: %s %s", payout.String(), a.unit)
+				sendMessage(msg, a.listeners)
+			})
+		}
+	}()
 
 	return nil
 }
@@ -208,23 +217,23 @@ func getEventSubscription(api *gsrpc.SubstrateAPI) (
 }
 
 func listenForEraPayout(ctx context.Context, api *gsrpc.SubstrateAPI, onEraFinish func(block types.Hash,
-	eraIndex types.U32)) error {
+	eraIndex types.U32)) (err error) {
+	defer fmt.Println("Finished watching ERA payout events", err)
+	log.Println("Watching for ERA Payout events...")
+
 	sub, meta, key, err := getEventSubscription(api)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 
 	defer sub.Unsubscribe()
 
-	// outer for loop for subscription notifications
-	log.Println("Watching for ERA Payout events...")
-	defer fmt.Println("Finished watching ERA payout events", err)
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-sub.Err():
+			err = ctx.Err()
+			return err
+		case err = <-sub.Err():
 			return err
 		case set := <-sub.Chan():
 			// inner loop for the changes within one of those notifications
@@ -254,7 +263,10 @@ func listenForPayoutReward(
 	ctx context.Context,
 	api *gsrpc.SubstrateAPI,
 	stash types.AccountID,
-	onReward func(block types.Hash, stash types.AccountID, amount types.U128)) error {
+	onReward func(block types.Hash, stash types.AccountID, amount types.U128)) (err error) {
+	defer fmt.Println("Finished watching reward events", err)
+	log.Println("Watching for reward events...")
+
 	sub, meta, key, err := getEventSubscription(api)
 	if err != nil {
 		log.Println(err)
@@ -263,14 +275,12 @@ func listenForPayoutReward(
 
 	defer sub.Unsubscribe()
 
-	// outer for loop for subscription notifications
-	log.Println("Watching for reward events...")
-	defer fmt.Println("Finished watching reward events", err)
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-sub.Err():
+			err = ctx.Err()
+			return err
+		case err = <-sub.Err():
 			return err
 		case set := <-sub.Chan():
 			// inner loop for the changes within one of those notifications
