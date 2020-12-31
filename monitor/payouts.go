@@ -48,17 +48,16 @@ func NewAccountant(stash, hotWallet, unit string, decimals int, listeners []List
 
 func (a *Accountant) Start(ctx context.Context) error {
 	go func() {
-		for ctx.Err() != nil {
+		for ctx.Err() == nil {
 			listenForEraPayout(ctx, a.api, func(block types.Hash, eraIndex types.U32) {
 				log.Println("Era finished", eraIndex)
 				a.initiatePayouts()
 			})
 		}
-
 	}()
 
 	go func() {
-		for ctx.Err() != nil {
+		for ctx.Err() == nil {
 			listenForPayoutReward(ctx, a.api, a.stash, func(block types.Hash, stash types.AccountID,
 				amount types.U128) {
 				payout := amount.Div(amount.Int, big.NewInt(1).Exp(big.NewInt(10), big.NewInt(int64(a.decimals)), nil))
@@ -79,7 +78,6 @@ func (a *Accountant) initiatePayouts() {
 		return
 	}
 	batches := batchUnclaimed(9, unclaimed)
-	log.Println("Unclaimed era batches:", batches)
 	nonce, err := fetchNonce(a.api, a.wallet.PublicKey)
 	if err != nil {
 		log.Println("failed to fetch nonce", err)

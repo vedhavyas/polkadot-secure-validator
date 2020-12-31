@@ -51,7 +51,6 @@ func fetchDataFromPrometheus() ([]byte, error) {
 	var resp *http.Response
 	var err error
 	for i := 0; i < 5; i++ {
-		log.Println("Attempting to fetch metrics", i)
 		resp, err = http.Get(u)
 		if err != nil {
 			log.Println("Failed. Will retry in a min again...")
@@ -59,7 +58,6 @@ func fetchDataFromPrometheus() ([]byte, error) {
 			continue
 		}
 
-		log.Println("Success. Fetched in attempt", i)
 		d, err := ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
@@ -156,12 +154,10 @@ func FetchMetrics() (Metrics, error) {
 		}
 	}
 
-	log.Println("Fetching journalctl logs...")
 	vs, err := fetchValidatorStats()
 	if err != nil {
 		return metrics, err
 	}
-	log.Println("Logs fetched successfully.", vs)
 	metrics.ValidatorStats = vs
 	return metrics, nil
 }

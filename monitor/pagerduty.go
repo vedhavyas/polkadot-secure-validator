@@ -57,7 +57,8 @@ func (p *Pagerduty) Notify(severity Severity, message string) {
 
 	d, err := json.Marshal(params)
 	if err != nil {
-		panic(err)
+		log.Println(err)
+		return
 	}
 
 	url := "https://events.pagerduty.com/v2/enqueue"
@@ -73,8 +74,6 @@ func (p *Pagerduty) Notify(severity Severity, message string) {
 		log.Printf("failed to read pagerduty response: %v\n", err)
 		return
 	}
-
-	log.Printf("Pagerduty response: %s\n", string(d))
 }
 
 func (p *Pagerduty) SendMessage(string) {

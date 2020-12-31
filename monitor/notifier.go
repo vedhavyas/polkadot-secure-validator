@@ -133,7 +133,6 @@ func fetchValidatorStats() (ValidatorStats, error) {
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
-	log.Println(cmd.String())
 	output, err := cmd.Output()
 	if err != nil {
 		return ValidatorStats{}, fmt.Errorf("%v: %v", err, stderr.String())
@@ -158,7 +157,6 @@ func fetchValidatorStats() (ValidatorStats, error) {
 		vs = nvs
 	}
 
-	log.Println("Found:", c, "logs")
 	vs.BlocksProduced = c
 	return vs, nil
 }

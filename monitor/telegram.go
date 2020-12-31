@@ -83,18 +83,14 @@ func (t *Telegram) Start(ctx context.Context) {
 			msg := t.fetchCommand(strings.ToLower(update.Message.Text))
 			switch msg {
 			case "metrics":
-				log.Println("Received metrics request from the user. Sending the metrics...")
 				t.sendMetrics(update.Message.ID)
 			case "info":
-				log.Println("Received info log enable request from the user. Enabling...")
 				t.updateSeverity(Info)
 				t.sendString(update.Message.ID, fmt.Sprintf("Log level: Info %s", OkayEmoji), true)
 			case "warn":
-				log.Println("Received warn enable request from the user. Disabling...")
 				t.updateSeverity(Warn)
 				t.sendString(update.Message.ID, fmt.Sprintf("Log level: Warn %s", WarnEmoji), true)
 			case "error":
-				log.Println("Received error enable request from the user. Disabling...")
 				t.updateSeverity(Alert)
 				t.sendString(update.Message.ID, fmt.Sprintf("Log level: Error %s", ErrorEmoji), true)
 			case "payout":
